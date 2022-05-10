@@ -47,6 +47,7 @@ ssh 설정여부는 `systemctl status ssh` 를 통해 확인가능
 `/etc/ssh/sshd_config` 의 내용을 수정하고, `systemctl restart ssh` 를 통해 변경내용 적용가능
 
 연결은 로컬에서 `ssh yohwang@10.12.3.1 -p 4242` 와 해당 사용자의 비밀번호를 통해 가능
+(dhclient 삭제, ufw 방화벽 설정 이후 가능!)
 
 ssh 연결시 @뒤에 붙는 주소는 연결을 시도하는(호스트) 컴퓨터의 ip를 의미하며, `ipconfig` 혹은 맥 기준 시스템 환경설정의 네트워크 탭에서 확인할 수 있다
 
@@ -57,6 +58,8 @@ ssh 연결시 @뒤에 붙는 주소는 연결을 시도하는(호스트) 컴퓨�
 `Port` 의 기본값은 22로, 4242로 수정해줄 것
 
 `PermitRootLogin` 의 기본값은 no로, 따로 수정하지 않아도 root의 ssh 연결이 불가능하지만, no라고 명시적으로 작성
+
+<img width="479" alt="%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7%202022-05-10%20%EC%98%A4%ED%9B%84%201 45 11" src="https://user-images.githubusercontent.com/25719161/167569732-c11b7512-4a6d-4ef3-9fca-1ebafe4c1c58.png">
 
 ### UFW
 
@@ -74,6 +77,16 @@ ssh 연결시 @뒤에 붙는 주소는 연결을 시도하는(호스트) 컴퓨�
 
 <img width="691" alt="스크린샷 2022-05-03 오후 3 06 33" src="https://user-images.githubusercontent.com/25719161/166446834-4dfc442d-916b-499c-96af-4c523d38910f.png">
 
+이 설정이 다 끝난 후 reboot 한 후에 연결 시도시 fingerprint 생성 여부를 묻고, yes를 한다면 정상적으로 작성됨
+
+<img width="845" alt="%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7%202022-05-10%20%EC%98%A4%ED%9B%84%202 05 07" src="https://user-images.githubusercontent.com/25719161/167569996-9367b9c1-2ccb-4f15-b897-c80e2e18eb96.png">
+<img width="846" alt="%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7%202022-05-10%20%EC%98%A4%ED%9B%84%202 04 47" src="https://user-images.githubusercontent.com/25719161/167570042-b480aa86-9c05-465e-901b-02225521a1e6.png">
+
+### Apparmor
+
+활성화 여부는 `aa-enabled`를 통해 확인가능
+
+`apt install apparmor-utils` 를 통해 패키지를 설치하고 프로필 생성 후, `aa-enforce` 를 실행할 것!
 
 ### User
 
@@ -83,11 +96,21 @@ ssh 연결시 @뒤에 붙는 주소는 연결을 시도하는(호스트) 컴퓨�
 
 user의 제거는 `deluser hakim` 과 같이 할 수 있습니다. 해당 유저가 로그인 되어있다면 삭제되지 않고, 
 
+### Passwd
+
 강력한 암호 정책을 설정하려면 다음 요구 사항을 준수해야 합니다.
 • 비밀번호는 30일마다 만료되어야 합니다. (chage)
 • 비밀번호를 수정하기 전에 허용되는 최소 일수는
 2로 설정합니다. (chage)
 • 사용자는 암호가 만료되기 7일 전에 경고 메시지를 받아야 합니다. (chage)
+앞으로 생성되는 유저에 대해서도 해당 옵션을 적용하고 싶다면, `/etc/login.defs` 를 편집
+```
+PASS_MAX_DAYS 30
+
+PASS_MIN_DAYS 2
+
+PASS_WARN_AGE 7
+```
 • 비밀번호는 10자 이상이어야 합니다. 대문자와 숫자를 포함해야 합니다. (common-password, `minlen` , `dcredit` , `ucredit`)
 또한 동일한 내용이 연속 3개 이상 포함되어서는 안 됩니다. (common-password, `maxrepeat`, )
 
@@ -104,3 +127,7 @@ user의 제거는 `deluser hakim` 과 같이 할 수 있습니다. 해당 유저
 직전 비밀번호 7자 규정은 적용되지 않는 이유는 root 계정의 비밀번호 변경시에는 직전 비밀번호를 확인하지 않기 때문입니다.
 
 유저의 비밀번호 변경은 `passwd -e yohwang` 으로 할 수 있습니다. 해당 명령어를 입력한 뒤에 다시 로그인 할 때, 해당 규정에 맞도록 새로운 비밀번호를 정해주면 됩니다.
+
+자기 자신의 비밀번호 변경은 passwd 를 통해 할 수 있습니다. -e 옵션을 사용하는 경우, root의 경우에도 difok의 적용을 받지만, 해당 옵션없이 명령하는 경우, root는 difok의 적용을 받지 않습니다. 
+
+<img width="946" alt="%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7%202022-05-10%20%EC%98%A4%ED%9B%84%202 25 26" src="https://user-images.githubusercontent.com/25719161/167570479-497feaf8-e11c-4433-af0b-44c786eef16e.png">
