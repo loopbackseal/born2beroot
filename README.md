@@ -204,3 +204,103 @@ PASS_WARN_AGE 7
 자기 자신의 비밀번호 변경은 passwd 를 통해 할 수 있습니다. -e 옵션을 사용하는 경우, root의 경우에도 difok의 적용을 받지만, 해당 옵션없이 명령하는 경우, root는 difok의 적용을 받지 않습니다. 
 
 <img width="946" alt="%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7%202022-05-10%20%EC%98%A4%ED%9B%84%202 25 26" src="https://user-images.githubusercontent.com/25719161/167570479-497feaf8-e11c-4433-af0b-44c786eef16e.png">
+
+### monitoring.sh
+
+Your script must always be able to display the following information:
+
+• The architecture of your operating system and its kernel version.
+
+• The number of physical processors.
+
+• The number of virtual processors.
+
+• The current available RAM on your server and its utilization rate as a percentage.
+
+• The current available memory on your server and its utilization rate as a percentage.
+
+• The current utilization rate of your processors as a percentage.
+
+• The date and time of the last reboot.
+
+• Whether LVM is active or not.
+
+• The number of active connections.
+
+• The number of users using the server.
+
+• The IPv4 address of your server and its MAC (Media Access Control) address.
+
+• The number of commands executed with the sudo program.
+
+// 수정필요
+```bash
+#!/bin/bash
+
+# The architecture of your operating system and its kernel version.
+#uname -a | awk ‘{print “#Architecture: “ $0}’
+echo "#Architecture: $(uname -a)"
+
+# The number of physical processors.
+echo "#CPU Physical: $(nproc --all)" 
+
+# vCPU
+cat /proc/cpuinfo | grep processor | wc -l | awk ‘{print “#vCPU: “ $0}’
+
+# Memory Usage
+free —mega | grep Mem | awk ‘{printf(”#Memory Usage: %d/%dMB (%.2f%%)\n”, $3, $2, ($3/$2) * 100)}’
+
+# Disk Usage
+df -m | sed ‘1d’ | awk ‘{total += $2} {used += $3} END {printf(”#Disk Usage: %d/%dMB (%.2f%%)\n”, used, total, (used/total) * 100)}’
+
+#CPU load
+mpstat | awk 'NR==4 {printf ("#CPU load: %.2f%%\n", 100-$13)}'
+
+# Last boot
+who -b | awk '{printf ("#Last boot: %s %s\n", $3, $4)}'
+
+#LVM
+lsblk | grep lvm | wc -l | awk ‘$0 ≥ 1 {print “#LVM use: yes”} $0 == 0 {print “#LVM use: no”}’
+
+# Connection TCP
+echo "#Connection TCP: $(ss -t | grep -i estab | wc -l) ESTABLISHED"
+
+# User login
+echo “#User log: $(who | wc -l)”
+
+# Network
+echo “#Network: IP $(hostname -I)($(ip addr | grep link/ether | awk ‘{print $2}’))”
+
+# The number of commands executed with the sudo program.
+echo "#Sudo: $(journalctl _COMM=sudo | wc -l) cmd"
+# echo "#Sudo: $(ls ~/var/log/sudo/00/00 | wc -l) cmd"
+```
+
+### Crontab
+
+[리눅스 크론탭(Linux Crontab) 사용법](https://jdm.kr/blog/2)
+
+`crontab -e` 로 crontab에서 사용할 매크로를 적용할 수 있습니다.
+
+<img width="833" alt="Screen Shot 2022-05-11 at 8 25 56 PM" src="https://user-images.githubusercontent.com/25719161/168412301-65a4fcc8-b794-4e27-aca0-34872fd528d5.png">
+
+`*` 의 경우 모든을 의미하고, `*/10` 의 경우 각 10 (분, 시 등) 마다 적용되는 것을 의미한다.
+
+위의 경우, 10분 마다 `/root/monitoring.sh` 를 실행한 결과를 모든 사용자에게 출력(`wall`)한다는 의미.
+
+`systemctl stop cron` → cron의 작동을 멈출 수 있음
+
+`systemctl start cron` → cron의 작동을 재시작 시킬 수 있음!
+
+## Bonus
+
+`lsblk` 를 통해 파티셔닝 확인
+
+<img width="833" alt="Screen Shot 2022-05-11 at 8 25 56 PM" src="https://user-images.githubusercontent.com/25719161/168412361-88ade75a-b396-4aa1-b96c-7ddb92a36ebd.png">
+
+
+mariadb, wordpress 설치 완료했으나 적용이 안됨
+
+`ss -tunlp` 시 여러 포트가 열려있었음
+
+`apt purge <패키지>` 를 통해 해결!
