@@ -233,7 +233,7 @@ Your script must always be able to display the following information:
 
 • The number of commands executed with the sudo program.
 
-// 수정필요
+
 ```bash
 #!/bin/bash
 
@@ -272,10 +272,15 @@ echo “#User log: $(who | wc -l)”
 echo “#Network: IP $(hostname -I)($(ip addr | grep link/ether | awk ‘{print $2}’))”
 
 # The number of commands executed with the sudo program.
-echo "#Sudo: $(journalctl _COMM=sudo | wc -l) cmd"
-# echo "#Sudo: $(ls ~/var/log/sudo/00/00 | wc -l) cmd"
+# echo "#Sudo: $(journalctl _COMM=sudo | wc -l) cmd"
+echo "#Sudo: $(ls ~/var/log/sudo/00/00 | wc -l) cmd"
 ```
-
+```
+마지막 내용은 journalctl이라고 검색하면 주로 나오는데, 실제로 명령어를 한번 실행하면 1회 이상 숫자가 늘어난다.
+따라서 `sudoers`에서 input과 output의 결과를 기록하는 `var/log/sudo/00/00`의 하위폴더의 숫자를 출력하도록 수정했는데,
+1300번 이상의 경우에는 `var/log/sudo/00/01`에 기록이 된다고 한다.
+보다 정확한 기록을 출력하기 위해서는 다른 부분을 고려해야할듯
+```
 ### Crontab
 
 [리눅스 크론탭(Linux Crontab) 사용법](https://jdm.kr/blog/2)
